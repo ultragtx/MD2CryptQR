@@ -1,0 +1,23 @@
+body {
+    background-color: #f2f2f2;
+}
+
+h1 {
+    text-align: center;
+}
+
+#loadingMessage,
+#outputMessage {
+    text-align: center;
+    margin-top: 20px;
+}
+
+#canvas {
+    margin-top: 20px;
+}
+
+#decodedContent {
+    margin-top: 20px;
+    border: 1px solid #ccc;
+    padding: 10px;
+}

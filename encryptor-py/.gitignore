@@ -146,3 +146,8 @@ web-root/*/*
 *.swp
 *.swo
 *~
+
+
+# Others
+output.pdf
+sample.md
