@@ -52,7 +52,7 @@ class PDFWriter:
                 border=4,
             )
 
-            print('-----------len of encrypted_content: ', len(content_chunk))
+            print('-----------len of encrypted_content: ', len(content_chunk.encode('utf-8'))),
 
             qr.add_data(content_chunk)
             qr.make(fit=True)
@@ -74,6 +74,12 @@ class PDFWriter:
 
             if self.current_width + self.qr_size + self.margin > self.page_width:
                 self.current_height -= self.qr_size + 1 * cm  # Move to next row
+                self.current_width = self.margin  # Reset to left margin
+
+            if self.current_height < self.margin:
+                self.c.showPage()  # create new page
+                self.c.setFont(font_name, self.content_font_size)
+                self.current_height = self.page_height - self.margin - self.content_line_height - self.qr_size   # Reset to top, and leave enough space for the qr code
                 self.current_width = self.margin  # Reset to left margin
 
             # Draw sequence number and QR code to PDF
