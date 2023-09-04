@@ -34,8 +34,8 @@ class PDFWriter:
 
     def add_section_to_pdf(self, title, encrypted_content, error_correction):
         # Print section title
-        print(title, len(encrypted_content))
-        print('=-=-=-=-')
+        # print(title, len(encrypted_content))
+        # print('=-=-=-=-')
         self.c.setFontSize(self.title_font_size)
         self.c.drawString(self.current_width, self.current_height, title)
         self.c.setFontSize(self.content_font_size)
@@ -43,7 +43,7 @@ class PDFWriter:
 
         # Loop through each chunk of encrypted content for this section
         for sequence_number, content_chunk in enumerate(encrypted_content):
-            print(content_chunk[:10], '|', len(content_chunk))
+            # print(content_chunk[:10], '|', len(content_chunk))
             # Generate QR Codes and add to PDF
             qr = qrcode.QRCode(
                 version=None,  # Let the library auto-determine

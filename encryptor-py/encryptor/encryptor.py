@@ -1,6 +1,8 @@
 from cryptography.fernet import Fernet
+import json
 from pdf_writer import PDFWriter
 from markdown_parser import MarkdownParser
+
 
 class Encryptor:
 
@@ -18,16 +20,33 @@ class Encryptor:
         # A more secure method would be advised for a production setting.
         self.key = Fernet.generate_key()
 
-    def encrypt_section(self, section):
+    def encrypt_chunk(self, chunk):
         cipher_suite = Fernet(self.key)
-        return cipher_suite.encrypt(section.encode())
+        content_bytes = chunk.encode('utf-8')  # Convert string to bytes
+        return cipher_suite.encrypt(content_bytes)
 
     def process(self):
         self.generate_key()
         sections = self.md_parser.parse_markdown()
 
-        for title, content_parts in sections.items():
-            self.pdf_writer.add_section_to_pdf(title, content_parts, self.error_correction)
+        for section in sections:
+            encrypted_chunks = []
+            title = None
+
+            for chunk in section:
+                title = chunk["title"]
+
+                # Encrypt the chunk
+                chunk_str = json.dumps(chunk, ensure_ascii=False)
+                encrypted_content = self.encrypt_chunk(chunk_str)
+                # encrypted_chunks.append(encrypted_content)
+                encrypted_chunks.append(chunk_str)
+            
+            self.pdf_writer.add_section_to_pdf(title, encrypted_chunks, self.error_correction)
+            
+
+        # for title, content_parts in sections.items():
+            # self.pdf_writer.add_section_to_pdf(title, content_parts, self.error_correction)
 
             # for idx, content in enumerate(content_parts):
             #     section_title = f"{title} (Part {idx + 1})" if len(content_parts) > 1 else title
