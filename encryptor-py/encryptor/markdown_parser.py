@@ -51,6 +51,8 @@ class MarkdownParser:
                 "content": current_part.strip()
             })
 
+            self.idx += 1
+
         return parts
 
         # parts = []
