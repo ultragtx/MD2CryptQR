@@ -1,82 +1,146 @@
 import jsQR from "jsqr";
 import '@src/styles/index.css'
 
-let chunks = {};
-let password;
+async function deriveKey(password) {
+    const textEncoder = new TextEncoder();
+    const passwordBuffer = textEncoder.encode(password);
+    const passwordHashBuffer = await window.crypto.subtle.digest('SHA-256', passwordBuffer);
+    const passwordHash = new Uint8Array(passwordHashBuffer);
 
-// function startDecoding() {
-//     password = document.getElementById('password').value;
-//     let video = document.getElementById("preview");
-//     navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' }})
-//     .then(stream => {
-//         video.srcObject = stream;
-//         video.setAttribute("playsinline", true); // to allow the video to be played inline on iPhone
-//         video.play();
-//         requestAnimationFrame(tick);
-//     });
-// }
+    const salt = passwordHash.slice(0, 8);
+    const keyMaterial = passwordHash.slice(8, 24);
+    const iv = passwordHash.slice(16);
 
-// function tick() {
-//     let video = document.getElementById("preview");
-//     let canvas = document.createElement("canvas");
-//     canvas.width = video.videoWidth;
-//     canvas.height = video.videoHeight;
-//     let ctx = canvas.getContext('2d');
-//     ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-//     let imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-//     let code = jsQR(imageData.data, imageData.width, imageData.height);
+    const baseKey = await window.crypto.subtle.importKey(
+        "raw",
+        keyMaterial,
+        { name: "PBKDF2" },
+        false,
+        ["deriveKey"]
+    );
 
-//     if (code) {
-//         handleQRCode(code.data);
-//     }
+    // Checked!
+    // const saltHex = Array.from(salt).map(b => b.toString(16).padStart(2, '0')).join('');
+    // const keyMaterialHex = Array.from(keyMaterial).map(b => b.toString(16).padStart(2, '0')).join('');
+    // const ivHex = Array.from(iv).map(b => b.toString(16).padStart(2, '0')).join('');
+    // console.log(`Salt in Hex: ${saltHex}`);
+    // console.log(`Key Material in Hex: ${keyMaterialHex}`);
+    // console.log(`IV in Hex: ${ivHex}`);
 
-//     requestAnimationFrame(tick);
-// }
+    const aesKey = await window.crypto.subtle.deriveKey(
+        {
+            name: "PBKDF2",
+            salt: salt,
+            iterations: 100000,
+            hash: "SHA-256"
+        },
+        baseKey,
+        { name: "AES-CBC", length: 256 },
+        true,
+        ["encrypt", "decrypt"]
+    );
 
-// function handleQRCode(data) {
-//     // let decryptedData = CryptoJS.AES.decrypt(data, password).toString(CryptoJS.enc.Utf8);
-//     let jsonData;
-//     try {
-//         // jsonData = JSON.parse(decryptedData);
-//         jsonData = JSON.parse(data);
-//     } catch (e) {
-//         console.error("Failed to parse JSON", e);
-//         return;
-//     }
+    // Checked!
+    // const keyBuffer = await crypto.subtle.exportKey('raw', aesKey);
+    // const keyArray = new Uint8Array(keyBuffer);
+    // const keyHex = Array.from(keyArray).map(b => b.toString(16).padStart(2, '0')).join('');
+    // console.log(`Key in Hex: ${keyHex}`);
 
-//     if (!chunks[jsonData.idx]) {
-//         chunks[jsonData.idx] = jsonData;
-//         updateMarkdownArea();
-//     }
-// }
+    return { key: aesKey, iv };
+}
 
-// function updateMarkdownArea() {
-//     let markdownArea = document.getElementById('markdownArea');
-//     let keys = Object.keys(chunks).sort((a, b) => a - b);
-//     let markdownContent = '';
+async function decryptChunk(encryptedChunk, key, iv) {
+    const decryptedContent = await window.crypto.subtle.decrypt(
+        {
+            name: "AES-CBC",
+            iv: iv.slice(0, 16),
+        },
+        key,
+        encryptedChunk
+    );
 
-//     for (let key of keys) {
-//         markdownContent += `## ${chunks[key].title}\n${chunks[key].content}\n`;
-//     }
+    console.log("decryptedContent:", decryptedContent);
 
-//     markdownArea.innerHTML = markdownContent;
-// }
+    const dec = new TextDecoder();
+    const decryptedStr = dec.decode(new Uint8Array(decryptedContent));
+    console.log("decryptedStr:", decryptedStr, "||");
+    const jsonObj = JSON.parse(decryptedStr);
+    console.log("jsonObj:", jsonObj);
+    return jsonObj;
+}
 
-function decryptContent(encryptedContent, password) {
-    // Replace this with your actual decryption logic
-    return encryptedContent;
+function hexStringFromData(data) {
+    const ua = new Uint8Array(data);
+    const hex = Array.from(ua).map(b => b.toString(16).padStart(2, '0')).join('');
+    return hex;
+}
+
+async function encryptChunk(chunk, key, iv) {
+    // Convert the object to a JSON string
+    let encoder = new TextEncoder();
+    // let plaintext = encoder.encode(JSON.stringify(chunk));
+    let plaintext = encoder.encode(chunk);
+    console.log("plaintext:", plaintext);
+    console.log(hexStringFromData(plaintext));
+  
+    // Perform AES encryption using CBC mode and PKCS#7 padding.
+    const ciphertext = await window.crypto.subtle.encrypt(
+      {
+        name: "AES-CBC",
+        iv: iv.slice(0, 16),  // Use 16 bytes for CBC IV
+      },
+      key,
+      plaintext
+    );
+
+    console.log(hexStringFromData(ciphertext));
+  
+    return ciphertext;
+}
+
+function arrayToBuffer(arr) {
+    const buffer = new ArrayBuffer(arr.length);
+    const view = new Uint8Array(buffer);
+    for (let i = 0; i < arr.length; ++i) {
+        view[i] = arr[i];
+    }
+    return buffer;
 }
 
 document.addEventListener("DOMContentLoaded", () => {
     let decodedSections = {}; // To store decoded QR content based on index
+    let derivedKey = null;
+    let iv = null;
     
+    const passwordDialog = document.getElementById("passwordDialog");
+    passwordDialog.style.display = 'block';
+
+    const passwordInput = document.getElementById("password");
+    const submitButton = document.getElementById("submit");
+
     const video = document.createElement("video");
     const canvasElement = document.getElementById("canvas");
     const canvas = canvasElement.getContext("2d");
     const loadingMessage = document.getElementById("loadingMessage");
     const outputMessage = document.getElementById("outputMessage");
     const decodedContent = document.getElementById("decodedContent");
-    const passwordInput = document.getElementById("password");
+
+    submitButton.addEventListener('click', async () => {
+        const password = passwordInput.value;
+
+        // Validate password and salt (you can customize the conditions)
+        if (password) {
+            ({ key: derivedKey, iv } = await deriveKey(password));
+            passwordDialog.style.display = 'none';  // Hide the dialog
+
+            // encryptChunk("1234123412341234", derivedKey, iv)
+            // .then(encryptedChunk => {
+            //     console.log("Encrypted Chunk:", encryptedChunk);
+            // });
+        } else {
+            alert("Invalid password. Please try again.");
+        }
+    });
     
     function drawLine(begin, end, color) {
         canvas.beginPath();
@@ -107,11 +171,20 @@ document.addEventListener("DOMContentLoaded", () => {
                 drawLine(code.location.bottomRightCorner, code.location.bottomLeftCorner, "#FF3B58");
                 drawLine(code.location.bottomLeftCorner, code.location.topLeftCorner, "#FF3B58");
                 
-                const encryptedData = code.data;
-                const decryptedData = decryptContent(encryptedData, passwordInput.value);
-                try {
-                    const decryptedJSON = JSON.parse(decryptedData);
+                // print the code.binaryData as hex 
+                console.log('decode qr code in hex', code.binaryData.map(b => b.toString(16).padStart(2, '0')).join(''));
 
+
+                const encryptedData = arrayToBuffer(code.binaryData);
+
+                console.log("Key:", derivedKey);
+                console.log("IV:", iv);
+                console.log("IV Length:", iv.length);
+                console.log("Code:", code);
+                console.log("Encrypted Chunk:", encryptedData);
+
+                decryptChunk(encryptedData, derivedKey, iv)
+                .then(decryptedJSON => {
                     console.log(decryptedJSON);
     
                     if (decryptedJSON && decryptedJSON.idx !== undefined) {
@@ -121,25 +194,12 @@ document.addEventListener("DOMContentLoaded", () => {
                             decodedSections[idx] = decryptedJSON;
                             renderContent();
                         }
-                        // let contentObj;
-                        // try {
-                        //     contentObj = JSON.parse(decryptedData);
-                        // } catch (err) {
-                        //     outputMessage.innerText = "Decryption or Parsing failed";
-                        //     return;
-                        // }
-                        
-                        // const idx = contentObj.idx;
-                        // if (!decodedSections[idx]) {
-                        //     decodedSections[idx] = contentObj;
-                        //     // Here, update your DOM with the new content in decodedSections
-                        //     decodedContent.innerText = JSON.stringify(decodedSections, null, 2);
-                        // }
                     }
-                }
-                catch (err) {
-                    // Do nothing, cannot parse json
-                }
+                })
+                .catch(err => {
+                    // Handle decryption errors
+                    console.error("Decryption failed:", err);
+                });
             } else {
                 outputMessage.innerText = "No QR code detected.";
             }
@@ -170,69 +230,4 @@ document.addEventListener("DOMContentLoaded", () => {
         console.error(err);
         loadingMessage.innerText = "Cannot access the camera.";
     });
-    // let capturedCodes = {};
-    // const passwordInput = document.getElementById("password");
-    // const cameraFeed = document.getElementById("cameraFeed");
-    // const renderArea = document.getElementById("renderArea");
-    // const missingList = document.getElementById("missingList");
-    
-    // const video = document.createElement("video");
-    // cameraFeed.appendChild(video);
-    
-    // navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } })
-    // .then(stream => {
-    //     video.srcObject = stream;
-    //     video.addEventListener("loadedmetadata", () => {
-    //         const canvas = document.createElement("canvas");
-    //         const ctx = canvas.getContext("2d");
-    //         canvas.width = video.videoWidth;
-    //         canvas.height = video.videoHeight;
-    
-    //         function tick() {
-    //             if (video.readyState === video.HAVE_ENOUGH_DATA) {
-    //                 ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-    //                 let imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-    //                 let code = jsQR(imageData.data, imageData.width, imageData.height);
-    
-    //                 if (code) {
-    //                     const decryptedData = decrypt(code.data, passwordInput.value);
-    //                     if (decryptedData && !capturedCodes[decryptedData.idx]) {
-    //                         capturedCodes[decryptedData.idx] = decryptedData;
-    //                         renderArea.innerHTML += `<div>${decryptedData.content}</div>`;
-    //                         checkForMissingCodes();
-    //                     }
-    //                 }
-    //             }
-    //             requestAnimationFrame(tick);
-    //         }
-    
-    //         tick();
-    //     });
-    // });
-    
-    // function decrypt(encodedData, password) {
-    //     // Assuming that encodedData is a base64 encoded JSON string
-    //     // Add your decryption logic here
-    //     // For now, just decoding from Base64 and parsing to JSON
-    //     try {
-    //         const strData = atob(encodedData);
-    //         return JSON.parse(strData);
-    //     } catch (err) {
-    //         console.error("Decryption or parsing failed", err);
-    //         return null;
-    //     }
-    // }
-    
-    // function checkForMissingCodes() {
-    //     // Dummy check for this example, update this as per your logic
-    //     const idxArray = Object.keys(capturedCodes).map(Number);
-    //     idxArray.sort((a, b) => a - b);
-    //     let missing = [];
-    //     for (let i = 0; i < idxArray.length; i++) {
-    //         if (idxArray[i] !== i + 1) {
-    //             missing.push(i + 1);
-    //         }
-    //     }
-    //     missingList.innerHTML = missing.join(", ");
-    // }
 });

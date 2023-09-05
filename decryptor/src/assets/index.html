@@ -7,13 +7,17 @@
   </head>
   <body>
     <h1>QR Decryptor</h1>
-    <label for="password">Enter Encryption Password:</label>
-    <input type="password" id="password">
     <div id="loadingMessage">🎥 Unable to access video stream</div>
     <canvas id="canvas" hidden></canvas>
     <div id="output">
       <div id="outputMessage">No QR code detected.</div>
       <div id="decodedContent">123123</div>
+    </div>
+
+    <div id="passwordDialog">
+        <label for="password">Password:</label>
+        <input type="password" id="password">
+        <button id="submit">Submit</button>
     </div>
     <%= htmlWebpackPlugin.tags.bodyTags %>
   </body>
