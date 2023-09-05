@@ -53,22 +53,16 @@ class Encryptor:
         ).encryptor()
 
         chunk_str = json.dumps(chunk, ensure_ascii=False).encode('utf-8')
-        # chunk_str = "1234123412341234".encode('utf-8');
-        # print(chunk_str)
-        # print("chunk_str in Hex: ", binascii.hexlify(chunk_str))
-        # padded_data = chunk_str + b"\0" * (16 - len(chunk_str) % 16)
         padded_data = pkcs7_padding(chunk_str)
-        # print(padded_data)
         ct = encryptor.update(padded_data) + encryptor.finalize()
 
-        print("Chunk in Hex: ", binascii.hexlify(ct))
-        print(ct[0])
-        print(ct[1])
-        print(ct[2])
-        print(ct[3])
+        # print("Chunk in Hex: ", binascii.hexlify(ct))
+        # print(ct[0])
+        # print(ct[1])
+        # print(ct[2])
+        # print(ct[3])
 
         return ct
-        # return base64.b64encode(ct).decode('utf-8')
 
     def process(self):
         self.generate_key()
@@ -82,8 +76,6 @@ class Encryptor:
             idx = section[0]["idx"]
 
             for chunk in section:
-                # chunk["content"] = self.encrypt_chunk(chunk["content"])
-                # Encrypt the chunk
                 # chunk_str = json.dumps(chunk, ensure_ascii=False)
                 
                 encrypted_content = self.encrypt_chunk(chunk)
