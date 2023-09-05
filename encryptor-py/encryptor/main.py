@@ -11,5 +11,6 @@ def parse_args():
 
 if __name__ == "__main__":
     args = parse_args()
+
     encryptor = Encryptor(args.password, args.input, args.output, args.error_correction)
     encryptor.process()

@@ -1,58 +1,95 @@
-from cryptography.fernet import Fernet
+from cryptography.hazmat.primitives.ciphers import algorithms, modes, Cipher
+from cryptography.hazmat.primitives import hashes
+from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
+from cryptography.hazmat.backends import default_backend
+import hashlib
 import json
 from pdf_writer import PDFWriter
 from markdown_parser import MarkdownParser
+import binascii
 
+
+def pkcs7_padding(data, block_size=16):
+    pad_len = block_size - len(data) % block_size
+    return data + bytes([pad_len] * pad_len)
 
 class Encryptor:
 
     def __init__(self, password, input_file, output_file, error_correction):
-        self.password = password
+        self.password_hash = hashlib.sha256(password.encode()).digest()
+        
+        self.salt = self.password_hash[:8]
+        self.key_material = self.password_hash[8:24]
+        self.iv = self.password_hash[16:]
+
         self.input_file = input_file
         self.output_file = output_file
         self.error_correction = error_correction
-        self.key = Fernet.generate_key()
+        self.backend = default_backend()
         self.pdf_writer = PDFWriter(self.output_file)
         self.md_parser = MarkdownParser(self.input_file)
 
     def generate_key(self):
-        # For simplicity, we are using the password as a base for the key.
-        # A more secure method would be advised for a production setting.
-        self.key = Fernet.generate_key()
+        kdf = PBKDF2HMAC(
+            algorithm=hashes.SHA256(),
+            length=32,
+            salt=self.salt,
+            iterations=100000,
+            backend=self.backend
+        )
+        self.key = kdf.derive(self.key_material)
+        
+        # Checked!
+        # print("Salt in Hex: ", binascii.hexlify(self.salt).decode())
+        # print("Key Material in Hex: ", binascii.hexlify(self.key_material).decode())
+        # print("IV in Hex: ", binascii.hexlify(self.iv).decode())
+        # print("Key in Hex: ", binascii.hexlify(self.key))
 
     def encrypt_chunk(self, chunk):
-        cipher_suite = Fernet(self.key)
-        content_bytes = chunk.encode('utf-8')  # Convert string to bytes
-        return cipher_suite.encrypt(content_bytes)
+        encryptor = Cipher(
+            algorithms.AES(self.key),
+            modes.CBC(self.iv[:16]),  # Use 16 bytes for CBC IV
+            backend=self.backend
+        ).encryptor()
+
+        chunk_str = json.dumps(chunk, ensure_ascii=False).encode('utf-8')
+        # chunk_str = "1234123412341234".encode('utf-8');
+        # print(chunk_str)
+        # print("chunk_str in Hex: ", binascii.hexlify(chunk_str))
+        # padded_data = chunk_str + b"\0" * (16 - len(chunk_str) % 16)
+        padded_data = pkcs7_padding(chunk_str)
+        # print(padded_data)
+        ct = encryptor.update(padded_data) + encryptor.finalize()
+
+        print("Chunk in Hex: ", binascii.hexlify(ct))
+        print(ct[0])
+        print(ct[1])
+        print(ct[2])
+        print(ct[3])
+
+        return ct
+        # return base64.b64encode(ct).decode('utf-8')
 
     def process(self):
         self.generate_key()
         sections = self.md_parser.parse_markdown()
 
+        # sections = sections[:1] # for debugging
+
         for section in sections:
             encrypted_chunks = []
-            title = None
+            title = section[0]["title"]
+            idx = section[0]["idx"]
 
             for chunk in section:
-                title = chunk["title"]
-
+                # chunk["content"] = self.encrypt_chunk(chunk["content"])
                 # Encrypt the chunk
-                chunk_str = json.dumps(chunk, ensure_ascii=False)
-                encrypted_content = self.encrypt_chunk(chunk_str)
-                # encrypted_chunks.append(encrypted_content)
-                encrypted_chunks.append(chunk_str)
+                # chunk_str = json.dumps(chunk, ensure_ascii=False)
+                
+                encrypted_content = self.encrypt_chunk(chunk)
+                encrypted_chunks.append(encrypted_content)
+                # encrypted_chunks.append(chunk_str)
             
             self.pdf_writer.add_section_to_pdf(title, encrypted_chunks, self.error_correction)
-            
-
-        # for title, content_parts in sections.items():
-            # self.pdf_writer.add_section_to_pdf(title, content_parts, self.error_correction)
-
-            # for idx, content in enumerate(content_parts):
-            #     section_title = f"{title} (Part {idx + 1})" if len(content_parts) > 1 else title
-            #     encrypted_content = self.encrypt_section(content)
-            #     # print('------------------')
-            #     # print(content)
-            #     self.pdf_writer.add_section_to_pdf(section_title, encrypted_content, self.error_correction)
 
         self.pdf_writer.save()

@@ -6,6 +6,7 @@ import qrcode
 from io import BytesIO
 from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont
+import binascii
 
 # Register the font (only need to do this once)
 font_path = "./fonts/Arial Unicode.ttf"
@@ -52,7 +53,10 @@ class PDFWriter:
                 border=4,
             )
 
-            print('-----------len of encrypted_content: ', len(content_chunk.encode('utf-8'))),
+            # print('-----------len of encrypted_content: ', len(content_chunk.encode('utf-8'))),
+            print('-----------len of encrypted_content: ', len(content_chunk)),
+
+            # print("Chunk in Hex: ", binascii.hexlify(content_chunk))
 
             qr.add_data(content_chunk)
             qr.make(fit=True)

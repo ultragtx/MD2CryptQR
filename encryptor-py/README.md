@@ -11,7 +11,7 @@ conda install python
 ## pip
 
 ```
-pip install markdown cryptography reportlab qrcode[pil]
+pip install Markdown cryptography reportlab argparse "qrcode[pil]"
 ```
 
 ## run
