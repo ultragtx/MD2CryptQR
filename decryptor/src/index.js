@@ -59,13 +59,13 @@ async function decryptChunk(encryptedChunk, key, iv) {
         encryptedChunk
     );
 
-    console.log("decryptedContent:", decryptedContent);
+    // console.log("decryptedContent:", decryptedContent);
 
     const dec = new TextDecoder();
     const decryptedStr = dec.decode(new Uint8Array(decryptedContent));
-    console.log("decryptedStr:", decryptedStr, "||");
+    // console.log("decryptedStr:", decryptedStr);
     const jsonObj = JSON.parse(decryptedStr);
-    console.log("jsonObj:", jsonObj);
+    // console.log("jsonObj:", jsonObj);
     return jsonObj;
 }
 
@@ -73,29 +73,6 @@ function hexStringFromData(data) {
     const ua = new Uint8Array(data);
     const hex = Array.from(ua).map(b => b.toString(16).padStart(2, '0')).join('');
     return hex;
-}
-
-async function encryptChunk(chunk, key, iv) {
-    // Convert the object to a JSON string
-    let encoder = new TextEncoder();
-    // let plaintext = encoder.encode(JSON.stringify(chunk));
-    let plaintext = encoder.encode(chunk);
-    console.log("plaintext:", plaintext);
-    console.log(hexStringFromData(plaintext));
-  
-    // Perform AES encryption using CBC mode and PKCS#7 padding.
-    const ciphertext = await window.crypto.subtle.encrypt(
-      {
-        name: "AES-CBC",
-        iv: iv.slice(0, 16),  // Use 16 bytes for CBC IV
-      },
-      key,
-      plaintext
-    );
-
-    console.log(hexStringFromData(ciphertext));
-  
-    return ciphertext;
 }
 
 function arrayToBuffer(arr) {
@@ -111,12 +88,6 @@ document.addEventListener("DOMContentLoaded", () => {
     let decodedSections = {}; // To store decoded QR content based on index
     let derivedKey = null;
     let iv = null;
-    
-    const passwordDialog = document.getElementById("passwordDialog");
-    passwordDialog.style.display = 'block';
-
-    const passwordInput = document.getElementById("password");
-    const submitButton = document.getElementById("submit");
 
     const video = document.createElement("video");
     const canvasElement = document.getElementById("canvas");
@@ -125,6 +96,22 @@ document.addEventListener("DOMContentLoaded", () => {
     const outputMessage = document.getElementById("outputMessage");
     const decodedContent = document.getElementById("decodedContent");
 
+    const password = prompt("Please enter your password:");  // Prompt the user for password
+
+    if (password) {
+        deriveKey(password)
+        .then((obj) => {
+            derivedKey = obj.key;
+            iv = obj.iv;
+            startTheCamera();
+        })
+        .catch(err => { 
+            alert("Derive key failed:", err);
+        });
+    } else {
+        alert("Invalid password. Please reload the page and try again.");
+    }
+
     submitButton.addEventListener('click', async () => {
         const password = passwordInput.value;
 
@@ -132,11 +119,6 @@ document.addEventListener("DOMContentLoaded", () => {
         if (password) {
             ({ key: derivedKey, iv } = await deriveKey(password));
             passwordDialog.style.display = 'none';  // Hide the dialog
-
-            // encryptChunk("1234123412341234", derivedKey, iv)
-            // .then(encryptedChunk => {
-            //     console.log("Encrypted Chunk:", encryptedChunk);
-            // });
         } else {
             alert("Invalid password. Please try again.");
         }
@@ -219,15 +201,17 @@ document.addEventListener("DOMContentLoaded", () => {
         
         decodedContent.innerText = fullContent;
     }
-    
-    navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } }).then(stream => {
-        video.srcObject = stream;
-        video.setAttribute("playsinline", true); // required to tell iOS safari we don't want fullscreen
-        video.play();
-        
-        requestAnimationFrame(tick);
-    }).catch(err => {
-        console.error(err);
-        loadingMessage.innerText = "Cannot access the camera.";
-    });
+
+    function startTheCamera() {
+        navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } }).then(stream => {
+            video.srcObject = stream;
+            video.setAttribute("playsinline", true); // required to tell iOS safari we don't want fullscreen
+            video.play();
+            
+            requestAnimationFrame(tick);
+        }).catch(err => {
+            console.error(err);
+            loadingMessage.innerText = "Cannot access the camera.";
+        });
+    }
 });

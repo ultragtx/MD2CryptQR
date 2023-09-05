@@ -21,16 +21,3 @@ h1 {
     border: 1px solid #ccc;
     padding: 10px;
 }
-
-#passwordDialog {
-    display: none;  /* Initially hidden */
-    position: absolute;
-    left: 50%;
-    top: 50%;
-    transform: translate(-50%, -50%);
-    background-color: #fff;
-    padding: 20px;
-    border: 2px solid #ccc;
-    border-radius: 5px;
-    z-index: 1000;
-}
