@@ -17,6 +17,9 @@
     - [Usage](#usage)
         - [Encryptor Command Line Options](#encryptor-command-line-options)
         - [Decryptor Usage](#decryptor-usage)
+    - [Credits](#credits)
+        - [Contributors](#contributors)
+        - [Special Thanks](#special-thanks)
 
 ---
 
@@ -70,16 +73,33 @@ Here are the available options:
 python encryptor/main.py -i ../README.md -o ../sample-output/output-compact.pdf -e M -l 700 -c
 ```
 
-You can find sample PDF outputs in both standard and compact modes in the repository. Click the links below to view or download them:
+You can find sample PDF outputs generated using standard and compact modes in the repository, created using password "123". Click the links below to view or download them:
 
-- [Sample Output in Standard Mode](https://github.com/ultragtx/MD2CryptQR/blob/main/sample-output/output.pdf)
-- [Sample Output in Compact Mode](https://github.com/ultragtx/MD2CryptQR/blob/main/sample-output/output-compact.pdf)
+- [Sample Output in Standard Mode](https://github.com/ultragtx/MD2CryptQR/blob/master/sample-output/output.pdf)
+- [Sample Output in Compact Mode](https://github.com/ultragtx/MD2CryptQR/blob/master/sample-output/output-compact.pdf)
 
 ### Decryptor Usage
 
 1. Go to the web-based decryptor, either hosted on GitHub or your private HTTPS server.
 2. Input the password used during encryption.
 3. Scan each QR code in the generated document.
+
+Special Acknowledgment
+A substantial portion of this project was enhanced through interactions with OpenAI's GPT-4 model. The language model aided in generating documentation, code refinement, and idea generation.
+
+---
+
+## Credits
+
+### Contributors
+
+<a href="https://github.com/ultragtx/MD2CryptQR/graphs/contributors">
+  <img src="https://contrib.rocks/image?repo=ultragtx/MD2CryptQR" />
+</a>
+
+### Special Thanks
+
+- OpenAI's GPT-4: For contributing a substantial amount of code and aiding in documentation.
 
 ---
 
