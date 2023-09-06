@@ -13,9 +13,3 @@ conda install python
 ```
 pip install Markdown cryptography reportlab argparse "qrcode[pil]"
 ```
-
-## run
-
-```
-python script_name.py --key your_encryption_key_here --file example.md
-```
