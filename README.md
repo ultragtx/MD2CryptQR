@@ -34,9 +34,9 @@
 
 ### Decryptor Installation
 
-* Option 1: Access the online version at https://github.io/xxxx
+* Option 1: Access the online version at https://ultragtx.github.io/MD2CryptQR/index.html
 
-* Option 2, build and serve these static files on a private HTTPS server.
+* Option 2, build and serve these static files on a private *HTTPS* server.
 
     ```bash
     cd decryptor
