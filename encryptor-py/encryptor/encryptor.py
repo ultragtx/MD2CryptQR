@@ -15,7 +15,7 @@ def pkcs7_padding(data, block_size=16):
 
 class Encryptor:
 
-    def __init__(self, password, input_file, output_file, error_correction):
+    def __init__(self, password, input_file, output_file, error_correction, qr_data_length, compact_mode):
         self.password_hash = hashlib.sha256(password.encode()).digest()
         
         self.salt = self.password_hash[:8]
@@ -26,8 +26,8 @@ class Encryptor:
         self.output_file = output_file
         self.error_correction = error_correction
         self.backend = default_backend()
-        self.pdf_writer = PDFWriter(self.output_file)
-        self.md_parser = MarkdownParser(self.input_file)
+        self.pdf_writer = PDFWriter(self.output_file, compact_mode)
+        self.md_parser = MarkdownParser(self.input_file, compact_mode, qr_data_length)
 
     def generate_key(self):
         kdf = PBKDF2HMAC(
@@ -82,6 +82,6 @@ class Encryptor:
                 encrypted_chunks.append(encrypted_content)
                 # encrypted_chunks.append(chunk_str)
             
-            self.pdf_writer.add_section_to_pdf(title, encrypted_chunks, self.error_correction)
+            self.pdf_writer.add_section_to_pdf(title, idx, encrypted_chunks, self.error_correction)
 
         self.pdf_writer.save()

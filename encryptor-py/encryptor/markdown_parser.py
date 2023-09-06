@@ -3,10 +3,11 @@ import json
 
 class MarkdownParser:
 
-    NO_TITLE = "No Title"
+    NO_TITLE = ""
 
-    def __init__(self, input_file, max_qr_data_length=1000):
+    def __init__(self, input_file, compact_mode, max_qr_data_length=800):
         self.input_file = input_file
+        self.compact_mode = compact_mode
         self.max_qr_data_length = max_qr_data_length  # Maximum characters that can be stored in a single QR code
 
     def _get_other_json_parts_byte_length(self, title, idx):
@@ -71,7 +72,11 @@ class MarkdownParser:
             content = f.read()
         
         # Regular expression to match Markdown headers, from `# Title` to `###### Title`
-        sections = re.split(r'(^#{1,6} .+)', content, flags=re.M)[1:]
+        if self.compact_mode:
+            sections = [content]
+        else:
+            sections = re.split(r'(^#{1,6} .+)', content, flags=re.M)[1:]
+
         section_list = [] # List of sections, each a list of chunks
         self.idx = 0 # global idx
 
@@ -88,11 +93,15 @@ class MarkdownParser:
             if not section.strip():
                 continue
 
-            # Check if the section is a title
-            if re.match(r'^#{1,6} .+', section):
-                current_title = section.strip()
-            else:  # This is content
+            if self.compact_mode:
                 content_parts = self._split_large_section(current_title, section.strip())
                 section_list.append(content_parts)
+            else:
+                # Check if the section is a title
+                if re.match(r'^#{1,6} .+', section):
+                    current_title = section.strip()
+                else:  # This is content
+                    content_parts = self._split_large_section(current_title, section.strip())
+                    section_list.append(content_parts)
 
         return section_list

@@ -1,0 +1,9 @@
+cffi==1.15.1
+cryptography==41.0.3
+Markdown==3.4.4
+Pillow==10.0.0
+pycparser==2.21
+pypng==0.20220715.0
+qrcode==7.4.2
+reportlab==4.0.4
+typing_extensions==4.7.1

@@ -15,8 +15,9 @@ pdfmetrics.registerFont(TTFont(font_name, font_path))
 
 class PDFWriter:
     
-    def __init__(self, path):
+    def __init__(self, path, compact_mode):
         self.path = path
+        self.compact_mode = compact_mode
         self.c = canvas.Canvas(self.path, pagesize=A4)
         
         self.title_font_size = 10
@@ -25,20 +26,22 @@ class PDFWriter:
         self.c.setFont(font_name, self.content_font_size)  # Use as a default font
 
         self.page_width, self.page_height = A4
-        self.current_height = self.page_height - 2 * cm  # Start 2 cm from the top
-        self.current_width = 2 * cm  # Start 2 cm from the left
-        self.qr_size = 6 * cm  # Size of each QR code, 4 cm x 4 cm
-        self.margin = 2 * cm  # Margin between QR codes
-        self.title_height = 0.8 * cm  # Height reserved for title
+        self.margin = 1 * cm  # Page margin
+        self.current_height = self.page_height - self.margin  # Start 2 cm from the top
+        self.current_width = self.margin  # Start 2 cm from the left
+        self.qr_size = 6.3 * cm  # Size of each QR code, 4 cm x 4 cm
+        self.margin_between_qr = 0 * cm  # Margin between each QR code
+        self.row_spacing = 0.5 * cm
+        self.title_height = 0 if compact_mode else 0.6 * cm  # Height reserved for title
         self.content_line_height = 0.4 * cm  # Height reserved for content
-        self.qr_per_row = int((self.page_width - 2 * cm) // (self.qr_size + self.margin))
 
-    def add_section_to_pdf(self, title, encrypted_content, error_correction):
+    def add_section_to_pdf(self, title, startIdx, encrypted_content, error_correction):
         # Print section title
         # print(title, len(encrypted_content))
         # print('=-=-=-=-')
         self.c.setFontSize(self.title_font_size)
-        self.c.drawString(self.current_width, self.current_height, title)
+        if not self.compact_mode:
+            self.c.drawString(self.current_width, self.current_height, title)
         self.c.setFontSize(self.content_font_size)
         self.current_height -= self.title_height + self.qr_size + self.content_line_height  # Adjust vertical position
 
@@ -54,7 +57,9 @@ class PDFWriter:
             )
 
             # print('-----------len of encrypted_content: ', len(content_chunk.encode('utf-8'))),
-            print('-----------len of encrypted_content: ', len(content_chunk)),
+            # print('-----------len of encrypted_content: ', len(content_chunk))
+
+            print('Print chunk: %2d, length: %d' % (startIdx + sequence_number, len(content_chunk)))
 
             # print("Chunk in Hex: ", binascii.hexlify(content_chunk))
 
@@ -77,7 +82,7 @@ class PDFWriter:
                 self.current_width = self.margin  # Reset to left margin
 
             if self.current_width + self.qr_size + self.margin > self.page_width:
-                self.current_height -= self.qr_size + 1 * cm  # Move to next row
+                self.current_height -= self.qr_size + self.row_spacing  # Move to next row
                 self.current_width = self.margin  # Reset to left margin
 
             if self.current_height < self.margin:
@@ -87,12 +92,12 @@ class PDFWriter:
                 self.current_width = self.margin  # Reset to left margin
 
             # Draw sequence number and QR code to PDF
-            self.c.drawString(self.current_width, self.current_height, f"Seq: {sequence_number + 1}")
+            self.c.drawString(self.current_width, self.current_height, f"Index: {startIdx + sequence_number}")
             # self.c.drawString(self.current_width, self.current_height + self.content_line_height, f"Con: {content_chunk[:10]}")
             self.c.drawImage(image, self.current_width, self.current_height + self.content_line_height, width=self.qr_size, height=self.qr_size)
 
             # Update position for next QR code in the same row
-            self.current_width += self.qr_size + 1 * cm  # Adjust horizontal position
+            self.current_width += self.qr_size + self.margin_between_qr  # Adjust horizontal position
 
         # Update position for next section
         self.current_width = self.margin  # Reset to left margin
