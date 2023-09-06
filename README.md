@@ -67,8 +67,13 @@ Here are the available options:
 **Example:**
 
 ```bash
-python encryptor/main.py -i ./myMarkdown.md -o MyQR.pdf -e M -l 700 -c
+python encryptor/main.py -i ../README.md -o ../sample-output/output-compact.pdf -e M -l 700 -c
 ```
+
+You can find sample PDF outputs in both standard and compact modes in the repository. Click the links below to view or download them:
+
+- [Sample Output in Standard Mode](https://github.com/ultragtx/MD2CryptQR/blob/main/sample-output/output.pdf)
+- [Sample Output in Compact Mode](https://github.com/ultragtx/MD2CryptQR/blob/main/sample-output/output-compact.pdf)
 
 ### Decryptor Usage
 
