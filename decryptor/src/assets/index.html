@@ -1,18 +1,31 @@
 <!DOCTYPE html>
 <html>
-  <head>
+<head>
     <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
     <title><%= htmlWebpackPlugin.options.title %></title>
     <%= htmlWebpackPlugin.tags.headTags %>
-  </head>
-  <body>
-    <h1>QR Decryptor</h1>
-    <div id="loadingMessage">🎥 Unable to access video stream</div>
-    <canvas id="canvas" hidden></canvas>
-    <div id="output">
-      <div id="outputMessage">No QR code detected.</div>
-      <div id="decodedContent">123123</div>
+</head>
+<body>
+    <div id="mainContainer">
+        <div id="subContainer0">
+            <div id="titleContainer">
+                <div id="title">QR Decryptor</div>
+                <button id="toggleCameraButton">Toggle Camera</button>
+            </div>
+            <div id="cameraAndScanInfoContainer">
+                <div id="loadingMessage">🎥 Unable to access video stream</div>
+                <canvas id="canvas" hidden></canvas>
+                <div id="missingIndices">Awaiting QR Codes...</div>
+            </div>
+        </div>
+
+        <div id="subContainer1">
+            <button id="toggleMDRenderButton">Toggle Markdown Render</button>
+            <div id="decodedContent">...</div>
+        </div>
     </div>
+    
     <%= htmlWebpackPlugin.tags.bodyTags %>
-  </body>
+</body>
 </html>

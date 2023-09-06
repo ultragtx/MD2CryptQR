@@ -1,23 +1,97 @@
 body {
+    margin: 0;
+    padding: 0;
+    font-family: Arial, sans-serif;
     background-color: #f2f2f2;
 }
 
-h1 {
+#mainContainer {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
+    width: 100%;
+    min-height: 100vh;
+    box-sizing: border-box;
+    padding: 16px;
+}
+
+#subContainer0, #subContainer1 {
+    width: 100%;
+    box-sizing: border-box;
     text-align: center;
 }
 
-#loadingMessage,
-#outputMessage {
-    text-align: center;
-    margin-top: 20px;
+#titleContainer {
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+}
+
+#title {
+    text-align: left;
+    font-size: 26px;
+    font-weight: bold;
+}
+
+#toggleCameraButton {
+    background-color: #007bff;
+    color: white;
+    padding: 10px 10px;
+    border: none;
+    border-radius: 4px;
+    font-size: 16px;
+}
+
+#toggleMDRenderButton {
+    background-color: #c3c3c3;  /* A light gray background */
+    color: #333;  /* Dark text */
+    padding: 10px 8px;
+    border: none;
+    border-radius: 4px;
+    font-size: 16px;
+    width: 100%;
+}
+
+#toggleCameraButton:focus {
+    outline: none;
+}
+
+#cameraAndScanInfoContainer {
+    margin-top: 16px;
+}
+
+#loadingMessage, #missingIndices {
+    margin: 16px 0;
 }
 
 #canvas {
-    margin-top: 20px;
+    max-width: 100%;
+    /* display: none;  It's hidden initially */
 }
 
 #decodedContent {
+    overflow-x: auto;
     margin-top: 20px;
+    padding: 16px;
     border: 1px solid #ccc;
-    padding: 10px;
+    box-sizing: border-box;
+    text-align: left;
 }
+
+/* Responsive layout */
+/* @media (orientation: portrait) {
+    #mainContainer {
+        flex-direction: column;
+    }
+} */
+
+/* @media (orientation: landscape) {
+    #mainContainer {
+        flex-direction: row;
+    }
+    #subContainer0, #subContainer1 {
+        width: 50%;
+    }
+} */

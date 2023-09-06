@@ -1,4 +1,5 @@
 import jsQR from "jsqr";
+import MarkdownIt from 'markdown-it';
 import '@src/styles/index.css'
 
 async function deriveKey(password) {
@@ -84,26 +85,36 @@ function arrayToBuffer(arr) {
     return buffer;
 }
 
-document.addEventListener("DOMContentLoaded", () => {
-    let decodedSections = {}; // To store decoded QR content based on index
+function main() {
     let derivedKey = null;
     let iv = null;
+    let decodedSections = {}; // To store decoded QR content based on index
+    let currentMaxIdx = -1;
+
+    let isCameraOn = true;
+
+    const md = new MarkdownIt();
+    let isMarkdownRendered = true;
 
     const video = document.createElement("video");
     const canvasElement = document.getElementById("canvas");
     const canvas = canvasElement.getContext("2d");
     const loadingMessage = document.getElementById("loadingMessage");
-    const outputMessage = document.getElementById("outputMessage");
     const decodedContent = document.getElementById("decodedContent");
 
-    const password = prompt("Please enter your password:");  // Prompt the user for password
+    const toggleCameraButton = document.getElementById("toggleCameraButton");
+
+    const toggleMDRenderButton = document.getElementById("toggleMDRenderButton");
+
+    const password = prompt("Enter the password for the document:");  // Prompt the user for password
+    // const password = "123";
 
     if (password) {
         deriveKey(password)
         .then((obj) => {
             derivedKey = obj.key;
             iv = obj.iv;
-            startTheCamera();
+            startCameraStream();
         })
         .catch(err => { 
             alert("Derive key failed:", err);
@@ -111,18 +122,6 @@ document.addEventListener("DOMContentLoaded", () => {
     } else {
         alert("Invalid password. Please reload the page and try again.");
     }
-
-    submitButton.addEventListener('click', async () => {
-        const password = passwordInput.value;
-
-        // Validate password and salt (you can customize the conditions)
-        if (password) {
-            ({ key: derivedKey, iv } = await deriveKey(password));
-            passwordDialog.style.display = 'none';  // Hide the dialog
-        } else {
-            alert("Invalid password. Please try again.");
-        }
-    });
     
     function drawLine(begin, end, color) {
         canvas.beginPath();
@@ -154,20 +153,20 @@ document.addEventListener("DOMContentLoaded", () => {
                 drawLine(code.location.bottomLeftCorner, code.location.topLeftCorner, "#FF3B58");
                 
                 // print the code.binaryData as hex 
-                console.log('decode qr code in hex', code.binaryData.map(b => b.toString(16).padStart(2, '0')).join(''));
+                // console.log('decode qr code in hex', code.binaryData.map(b => b.toString(16).padStart(2, '0')).join(''));
 
 
                 const encryptedData = arrayToBuffer(code.binaryData);
 
-                console.log("Key:", derivedKey);
-                console.log("IV:", iv);
-                console.log("IV Length:", iv.length);
-                console.log("Code:", code);
-                console.log("Encrypted Chunk:", encryptedData);
+                // console.log("Key:", derivedKey);
+                // console.log("IV:", iv);
+                // console.log("IV Length:", iv.length);
+                // console.log("Code:", code);
+                // console.log("Encrypted Chunk:", encryptedData);
 
                 decryptChunk(encryptedData, derivedKey, iv)
                 .then(decryptedJSON => {
-                    console.log(decryptedJSON);
+                    // console.log(decryptedJSON);
     
                     if (decryptedJSON && decryptedJSON.idx !== undefined) {
                         const idx = decryptedJSON.idx;
@@ -182,8 +181,6 @@ document.addEventListener("DOMContentLoaded", () => {
                     // Handle decryption errors
                     console.error("Decryption failed:", err);
                 });
-            } else {
-                outputMessage.innerText = "No QR code detected.";
             }
         }
         requestAnimationFrame(tick);
@@ -194,15 +191,48 @@ document.addEventListener("DOMContentLoaded", () => {
         let fullContent = "";
         
         for (let section of sortedData) {
-            fullContent += `### ${section.title}\n\n${section.content}\n\n`;
+            fullContent += `${section.title}\n\n${section.content}\n\n`;
         }
 
-        console.log(fullContent)
+        // console.log(fullContent)
+
+        if (isMarkdownRendered) {
+            decodedContent.innerHTML = md.render(fullContent);
+        }
+        else {
+            decodedContent.innerText = fullContent;
+        }
         
-        decodedContent.innerText = fullContent;
+        // Update missing indices
+        updateMissingIndices();
     }
 
-    function startTheCamera() {
+    function updateMissingIndices() {
+        const scannedIndices = Object.keys(decodedSections).map(idx => Number(idx));
+        
+        // Update current maximum index
+        const maxScannedIdx = Math.max(...scannedIndices);
+        if (maxScannedIdx > currentMaxIdx) {
+            currentMaxIdx = maxScannedIdx;
+        }
+    
+        if (currentMaxIdx >= 0) {
+            const allIndices = Array.from({length: currentMaxIdx + 1}, (_, i) => i);
+            const missingIndices = allIndices.filter(i => !scannedIndices.includes(i));
+            
+            const missingIndicesElement = document.getElementById("missingIndices");
+            missingIndicesElement.innerText = missingIndices.length > 0 ? 
+                `Missing QR Codes: ${missingIndices.join(", ")}` : 
+                "All QR Codes scanned!";
+        }
+    }
+
+    toggleMDRenderButton.addEventListener("click", () => {
+        isMarkdownRendered = !isMarkdownRendered;
+        renderContent();
+    });
+
+    function startCameraStream() {
         navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } }).then(stream => {
             video.srcObject = stream;
             video.setAttribute("playsinline", true); // required to tell iOS safari we don't want fullscreen
@@ -214,4 +244,27 @@ document.addEventListener("DOMContentLoaded", () => {
             loadingMessage.innerText = "Cannot access the camera.";
         });
     }
+
+    function stopCameraStream(stream) {
+        const tracks = stream.getTracks();
+        tracks.forEach(track => track.stop());
+    }
+
+    toggleCameraButton.addEventListener("click", () => {
+        // console.log("Toggle camera button clicked");
+        if (isCameraOn) {
+            stopCameraStream(video.srcObject);
+            canvasElement.style.display = "none";  // Hide the canvas
+        } else {
+            startCameraStream();
+            canvasElement.style.display = "block"; // Show the canvas
+        }
+        isCameraOn = !isCameraOn;
+    });
+}
+
+document.addEventListener("DOMContentLoaded", () => {
+    setTimeout(() => {
+        main();
+    }, 100);
 });
