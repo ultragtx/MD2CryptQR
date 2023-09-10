@@ -5,12 +5,12 @@ import '@src/styles/index.css'
 async function deriveKey(password) {
     const textEncoder = new TextEncoder();
     const passwordBuffer = textEncoder.encode(password);
-    const passwordHashBuffer = await window.crypto.subtle.digest('SHA-256', passwordBuffer);
-    const passwordHash = new Uint8Array(passwordHashBuffer);
-
-    const salt = passwordHash.slice(0, 8);
-    const keyMaterial = passwordHash.slice(8, 24);
-    const iv = passwordHash.slice(16);
+    const saltBuffer = await window.crypto.subtle.digest('SHA-256', passwordBuffer);
+    const salt = new Uint8Array(saltBuffer);
+    const keyMaterialBuffer = await window.crypto.subtle.digest('SHA-256', saltBuffer);
+    const keyMaterial = new Uint8Array(keyMaterialBuffer);
+    const ivBuffer = await window.crypto.subtle.digest('SHA-256', keyMaterialBuffer);
+    const iv = (new Uint8Array(ivBuffer)).slice(0, 16);
 
     const baseKey = await window.crypto.subtle.importKey(
         "raw",

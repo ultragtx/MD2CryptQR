@@ -16,11 +16,9 @@ def pkcs7_padding(data, block_size=16):
 class Encryptor:
 
     def __init__(self, password, input_file, output_file, error_correction, qr_data_length, compact_mode):
-        self.password_hash = hashlib.sha256(password.encode()).digest()
-        
-        self.salt = self.password_hash[:8]
-        self.key_material = self.password_hash[8:24]
-        self.iv = self.password_hash[16:]
+        self.salt = hashlib.sha256(password.encode()).digest()
+        self.key_material = hashlib.sha256(self.salt).digest()
+        self.iv = hashlib.sha256(self.key_material).digest()[:16]
 
         self.input_file = input_file
         self.output_file = output_file
