@@ -191,7 +191,12 @@ function main() {
         let fullContent = "";
         
         for (let section of sortedData) {
-            fullContent += `${section.title}\n\n${section.content}\n\n`;
+            if (section.title && section.title.length) {
+                fullContent += `${section.title}\n${section.content}`;
+            }
+            else {
+                fullContent += `${section.content}`;
+            }
         }
 
         // console.log(fullContent)

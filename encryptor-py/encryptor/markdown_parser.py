@@ -23,6 +23,7 @@ class MarkdownParser:
         parts = []
         current_part = ""
         current_length = 0
+        first_time = True
 
         for line in content.split("\n"):
             line_bytes = line.encode('utf-8')
@@ -34,10 +35,12 @@ class MarkdownParser:
             if json_length + current_length + line_length > self.max_qr_data_length:
                 # If including the current line exceeds the limit, append the current part
                 parts.append({
-                    "title": title,
+                    "title": title if first_time else "",
                     "idx": self.idx,
-                    "content": current_part.strip()
+                    "content": current_part
                 })
+                first_time = False
+
                 current_part = ""
                 current_length = 0
                 self.idx += 1
@@ -47,9 +50,9 @@ class MarkdownParser:
 
         if current_part:
             parts.append({
-                "title": title,
+                "title": title if first_time else "",
                 "idx": self.idx,
-                "content": current_part.strip()
+                "content": current_part
             })
 
             self.idx += 1
